@@ -1,6 +1,9 @@
 # bazh-model
 THIS CODE WRITTEN BY CHRISTIAN G. FINK, 2019
 
+**This is a revised version of fink_elife_recode_lfp. The previous version would in some cases hang when run in parallel. This version
+fixes that issue.**
+
 This simulation code is meant to qualitatively replicate the raster plot, LFP, and spectrogram from Fig. 2 
 of Krishnan et al's "Cellular and neurochemical basis of sleep stages in the thalamocortical network" 
 (eLife, 2016). It also adds the capability of computing the LFP from biophysical first principles, rather

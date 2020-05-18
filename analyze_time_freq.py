@@ -17,7 +17,7 @@ cut_start=1000; #number of milliseconds to cut out of beginning
 cut_end=1000; #number of milliseconds to cut out of end
 dsample=100; #downsample by factor 'dsample'
 
-temp=np.loadtxt('vcort_nhost=3.txt')
+temp=np.loadtxt('lfp_nhost=6.txt')
 data=temp[0:len(temp):dsample] #downsample data
 time=dsample*dt*np.arange(0,len(data))
 srate = 1000/(dsample*dt) #Hz
