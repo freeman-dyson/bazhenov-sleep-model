@@ -1,0 +1,2 @@
+6-19-19: I am keeping all the mod files here, so through the validation process I can make sure 
+they all work together. (I'm particularly worried about making sure global variables don't step on each other.)

@@ -1,0 +1,1 @@
+MODOBJFILES= Ih.o ampa.o ampa_D1.o ampa_D2.o ampa_NEURON.o cadecay.o gaba_A.o gaba_A_D2.o gaba_B.o hva.o iT_RE.o iT_TC.o kL.o kca.o kdr.o kdr_re.o kdr_tc.o km.o naf.o naf_re.o naf_tc.o nap.o nmda_D1.o
