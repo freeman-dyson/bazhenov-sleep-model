@@ -179,7 +179,7 @@ extern void _cvode_abstol( Symbol**, double*, int);
   hoc_register_dparam_semantics(_mechtype, 0, "k_ion");
   hoc_register_dparam_semantics(_mechtype, 1, "k_ion");
  	hoc_register_var(hoc_scdoub, hoc_vdoub, hoc_intfunc);
- 	ivoc_help("help ?1 kL C:/Users/finkt/OneDrive - Gonzaga University/Documents/research/bazhenov_sleep_model/network_model/v5/mod/kL.mod\n");
+ 	ivoc_help("help ?1 kL C:/Users/finkt/OneDrive - Gonzaga University/Documents/research/bazhenov_sleep_model/network_model/v6_updated/mod/kL.mod\n");
  hoc_register_limits(_mechtype, _hoc_parm_limits);
  hoc_register_units(_mechtype, _hoc_parm_units);
  }

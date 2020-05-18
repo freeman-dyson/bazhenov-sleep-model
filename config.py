@@ -33,7 +33,23 @@ doextra = 1
 area_cell=100 #determines cell density (micrometers^2 per cell) for when cells are placed in concentric rings (only need this if doextra==1)
 XE=2000.0 #x coordinate of recording electrode (in micrometers); see setCellLocations method in Net class
 YE=0.0 #y coordinate of recording electrode (in micrometers)
-ZE=0.0 #z coordinate of recording electrode (in micrometers)
+ZE=0.0 #z coordinate of recording electrode (in micrometers) 
+
+if doextra==1:
+    # the following code allows for Python to call a function at every time step,
+    # which will allow us to compute both the summed cortical voltage and the cortical biophysical LFP at every time step. code taken from
+    # https://www.neuron.yale.edu/phpBB/viewtopic.php?f=2&t=3389&p=14342&hilit=extracellular+recording+parallel#p14342
+    v_rec=[]
+    lfp_rec=[]
+    def callback(cort_secs):
+        v_cort = 0
+        lfp_cort = 0
+        for sec in cort_secs:
+                for seg in sec:
+                    v_cort = v_cort + seg.v #add up voltages in all segments of cortical cells
+                    lfp_cort = lfp_cort + seg.er_xtra #add up biophysical LFP contributions in all segments of cortical cells
+        v_rec.append(v_cort)
+        lfp_rec.append(lfp_cort)
 
 #set numbers of each cell type (see Krishnan's network.cfg); note that version 2 of this
 #code assumes that Ninh=Nre=Ntc (in the method connectCells)
