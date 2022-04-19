@@ -20,7 +20,7 @@ To run in serial, use the command 'nrniv -python bazh_net.py'
 To run in parallel, use 'mpiexec -n 2 nrniv -mpi -python bazh_net.py' 
 (you can swap out the '2' for whatever number of processors you wish to use in parallel).
 
-This will generate a raster txt file, an v_cort txt file containing the sum of the voltages in all
+This will generate a raster txt file, a v_cort txt file containing the sum of the voltages in all
 cortical cell compartments over time, and lfp txt file with the biophysical LFP trace.
 
 To plot the raster plot, run plot_raster.py. To plot the LFP, run plot_lfp.py (you can change the file that's opened to choose between
