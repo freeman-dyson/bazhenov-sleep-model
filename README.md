@@ -9,11 +9,10 @@ of Krishnan et al's "Cellular and neurochemical basis of sleep stages in the tha
 (eLife, 2016). It also adds the capability of computing the LFP from biophysical first principles, rather
 than simply averaging cellular voltage traces.
 
-This was programmed using an alpha version of NEURON 7.7.2. To run it, first install alpha version 
-nrn-7.7.1-22-g49a9ca1b.w64-mingw-py-37-36-35-27-setup.exe from https://neuron.yale.edu/ftp/neuron/versions/alpha/ 
-(Once NEURON 7.7.3 is released, you should no longer need to use this alpha version, and can instead just use the latest official distribution).
+This was programmed using an alpha version of NEURON 7.7.2 (using nrn-7.7.1-22-g49a9ca1b.w64-mingw-py-37-36-35-27-setup.exe from https://neuron.yale.edu/ftp/neuron/versions/alpha/ ). But it now works in the latest version of NEURON (see https://www.neuron.yale.edu/neuron/download)
 
-Then go to the 'mod' directory and type 'nrnivmodl'. This will compile the mod files. Then move the output (nrnmech.dll in Windows,
+After installing NEURON and downloading this code, go to the 'mod' directory and type 'nrnivmodl'. 
+This will compile the mod files. Then move the output (nrnmech.dll in Windows,
 x86_64 directory in Linux) up to the main directory.
 
 Then run bazh_net_v6.py. 
