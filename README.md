@@ -24,7 +24,7 @@ This will generate a raster txt file, a v_cort txt file containing the sum of th
 cortical cell compartments over time, and lfp txt file with the biophysical LFP trace.
 
 To plot the raster plot, run plot_raster.py. To plot the LFP, run plot_lfp.py (you can change the file that's opened to choose between
-the averaged voltage trace and the biophysical LFP0. And to generate the spectrogram, run analyze_time_freq.py. 
+the averaged voltage trace and the biophysical LFP). And to generate the spectrogram, run analyze_time_freq.py. 
 (you will need to make sure that the file names in all these routines match the name of the data file in question).
 
 Note that the network starts out in a highly synchronous state, and it is recommended to throw out the first 10 seconds
