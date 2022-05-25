@@ -15,7 +15,7 @@ After installing NEURON and downloading this code, go to the 'mod' directory and
 This will compile the mod files. Then move the output (nrnmech.dll in Windows,
 x86_64 directory in Linux) up to the main directory.
 
-Then run bazh_net_v6.py. 
+Then run bazh_net.py. 
 To run in serial, use the command 'nrniv -python bazh_net.py'
 To run in parallel, use 'mpiexec -n 2 nrniv -mpi -python bazh_net.py' 
 (you can swap out the '2' for whatever number of processors you wish to use in parallel).
