@@ -489,7 +489,7 @@ class Net:
         
         #this is basically replicating setpointers.hoc from Ted's extracellular_stim_and_rec code
         for sec in h.allsec():
-            if h.ismembrane('xtra'):
+            if h.ismembrane('xtra',sec=sec):
                 for seg in sec:
                     h.setpointer(seg._ref_i_membrane_, 'im', seg.xtra)
 
