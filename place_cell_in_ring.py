@@ -1,8 +1,5 @@
-#!/usr/bin/env python2
-# -*- coding: utf-8 -*-
 """
 This is just a file for figuring out how to place cells in a ring, with a specified space (in micrometers^2) per cell.
-This is adapted from the file of the same name in v12 of the HFO re-code.
 """
 from __future__ import division
 from matplotlib import pyplot
