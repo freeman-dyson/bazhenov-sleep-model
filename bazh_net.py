@@ -35,7 +35,7 @@ def onerun(randSeed,Npyr,Ninh,Nre,Ntc):
         recording_callback = (config.callback, cort_secs)
         h.cvode.extra_scatter_gather(0,recording_callback)  #this tells NEURON to call 'callback' on every time step, in order to compute LFP
     
-    '''if do_sleepstates==1, specify how parameters should change to induce different sleep states (see Krishnan's main.cpp)'''
+    '''if do_sleepstates==True, specify how parameters should change to induce different sleep states (see Krishnan's main.cpp)'''
     if config.do_sleepstates:
         #See 2019 Neuron Course booklet, p. 161; also see https://www.neuron.yale.edu/neuron/static/py_doc/programming/math/vector.html?highlight=vector#Vector.play
         t=h.Vector([config.awake_to_s2_start,config.awake_to_s2_end,config.s2_to_s3_start,config.s2_to_s3_end,config.s3_to_rem_start,config.s3_to_rem_end,config.rem_to_s2_start,config.rem_to_s2_end,config.rem_to_s2_end+h.dt]) #last entry (with "+h.dt") ensures that last parameter values remain constant to end of simulation ("If a constant outside the range is desired, make sure the last two points have the same y value and have different t values")
