@@ -1,16 +1,10 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Oct  8 08:51:47 2019
+'''
+Defines network connectivity
+'''
 
-@author: finkt
-"""
-
-from __future__ import division
 import config
-from matplotlib import pyplot
-from datetime import datetime
 import pickle
-from neuron import h#, gui
+from neuron import h
 import numpy as np
 h('load_file("stdgui.hoc")') #for some reason, need this instead of import gui to get the simulation to be reproducible and not give an LFP flatline
 from cell_classes import Cell, PyrCell, InhCell, RECell, TCCell   
@@ -44,7 +38,7 @@ class Net:
         self.connectCells() 
         self.createStims() 
         self.createIClamps()
-        if(config.doextra==1): self.setCellLocations() #only need to do this if recording the LFP
+        if config.doextra: self.setCellLocations() #only need to do this if recording the LFP
         
     def setGids(self):
         self.gidList = []
@@ -118,7 +112,7 @@ class Net:
             #reduce gmax for this cell's synapse, so that the total synaptic strength is equal to that specified in the config file
             #(gmax was already set in cell_classes.py, which used the value specified in config.py)
             #for fac_GABA_TC, see currents.cpp lines 341 & 369, and main.cpp
-            config.pc.gid2cell(tc_gid).synlist[0].gmax = config.init_GABA_TC * config.re2tc_gaba_a_str / config.pc.gid2cell(tc_gid).k_RE_TC_GABA_A
+            config.pc.gid2cell(tc_gid).synlist[0].gmax = config.init_GABA_thal * config.re2tc_gaba_a_str / config.pc.gid2cell(tc_gid).k_RE_TC_GABA_A
     
         ##### specify RE->TC GABA_B connections (NOTE: It is assumed Nre=Ntc) 
         rad=config.re2tc_gaba_b_rad #number of outgoing connections from each RE cell
@@ -138,7 +132,7 @@ class Net:
                 config.pc.gid2cell(tc_gid).k_RE_TC_GABA_B += 1 #update in-degree for this cell
             #see note above for GABA_synapse
             #for fac_GABA_TC, see currents.cpp lines 341 & 369, and main.cpp
-            config.pc.gid2cell(tc_gid).synlist[1].gmax = config.init_GABA_TC * config.re2tc_gaba_b_str / config.pc.gid2cell(tc_gid).k_RE_TC_GABA_B
+            config.pc.gid2cell(tc_gid).synlist[1].gmax = config.init_GABA_thal * config.re2tc_gaba_b_str / config.pc.gid2cell(tc_gid).k_RE_TC_GABA_B
             
         ##### specify RE->RE GABA_A connections
         rad=config.re2re_gaba_a_rad #number of outgoing connections from each RE cell
@@ -160,7 +154,7 @@ class Net:
             #reduce gmax for this cell's synapse, so that the total synaptic strength is equal to that specified in the config file
             #(gmax was already set in cell_classes.py, which used the value specified in config.py)
             #for fac_GABA_TC, see currents.cpp lines 341 & 369, and main.cpp
-            config.pc.gid2cell(re_gid).synlist[2].gmax = config.init_GABA_TC * config.re2re_gaba_a_str / config.pc.gid2cell(re_gid).k_RE_RE
+            config.pc.gid2cell(re_gid).synlist[2].gmax = config.init_GABA_thal * config.re2re_gaba_a_str / config.pc.gid2cell(re_gid).k_RE_RE
               
         ##### specify TC->RE AMPA connections (NOTE: It is assumed Nre=Ntc)  
         rad = config.tc2re_ampa_rad    #number of outgoing connections from each TC cell
@@ -181,7 +175,7 @@ class Net:
             #reduce gmax for this cell's synapse, so that the total synaptic strength is equal to that specified in the config file
             #(gmax was already set in cell_classes.py, which used the value specified in config.py)
             #for fac_AMPA_TC, see Krishnan's currents.cpp line 429, and main.cpp 
-            config.pc.gid2cell(re_gid).synlist[0].gmax = config.init_AMPA_TC * config.tc2re_ampa_str / config.pc.gid2cell(re_gid).k_TC_RE
+            config.pc.gid2cell(re_gid).synlist[0].gmax = config.init_AMPA_thal * config.tc2re_ampa_str / config.pc.gid2cell(re_gid).k_TC_RE
         
         ##### specify TC->PYR AMPA connections
         rad=config.tc2pyr_ampa_rad #number of outgoing connections from each TC cell
@@ -207,7 +201,7 @@ class Net:
             #for fac_AMPA_TC, see Krishnan's currents.cpp line 429, and main.cpp; note that network.cfg lists this as a D2 synapse with mini_f=0, which
             #doesn't make sense; but if it was somehow coded as a D2 synapse, then we should instead apply fac_AMPA_D2;
             #so it is unclear whether we should apply fac_AMPA_TC or fac_AMPA_D2 here (I'm guessing D2)
-            config.pc.gid2cell(pyr_gid).synlist[0].gmax = config.init_AMPA_D2 * config.tc2pyr_ampa_str / config.pc.gid2cell(pyr_gid).k_TC_PY
+            config.pc.gid2cell(pyr_gid).synlist[0].gmax = config.init_AMPA_cort * config.tc2pyr_ampa_str / config.pc.gid2cell(pyr_gid).k_TC_PY
         
         ##### specify TC->INH AMPA connections (NOTE: this assumes that Ntc=Ninh)
         rad=config.tc2inh_ampa_rad #number of outgoing connections from each TC cell
@@ -232,7 +226,7 @@ class Net:
             #for fac_AMPA_TC, see Krishnan's currents.cpp line 429, and main.cpp; note that network.cfg lists this as a D2 synapse with mini_f=0, which
             #doesn't make sense; but if it was somehow coded as a D2 synapse, then we should instead apply fac_AMPA_D2
             #so it is unclear whether we should apply fac_AMPA_TC or fac_AMPA_D2 here (I'm guessing D2)
-            config.pc.gid2cell(inh_gid).synlist[0].gmax = config.init_AMPA_D2 * config.tc2inh_ampa_str / config.pc.gid2cell(inh_gid).k_TC_IN
+            config.pc.gid2cell(inh_gid).synlist[0].gmax = config.init_AMPA_cort * config.tc2inh_ampa_str / config.pc.gid2cell(inh_gid).k_TC_IN
 
         ##### specify PYR->PYR AMPA_D2 connections
         rad=config.pyr2pyr_ampa_d2_rad #number of outgoing connections from each PY cell
@@ -255,7 +249,8 @@ class Net:
             #(gmax was already set in cell_classes.py, which used the value specified in config.py)
             #note that this should also normalize the mini's, since their strength is set in the mod file by psp_weight, which is set in cell_classes.py
             #for fac_AMPA_D2, see Krishnan's currents.cpp line 545 and main.cpp lines 579-583, 639-776
-            config.pc.gid2cell(pyr_gid).synlist[1].gmax = config.init_AMPA_D2 * config.pyr2pyr_ampa_d2_str / config.pc.gid2cell(pyr_gid).k_PY_PY_AMPA
+            #config.pc.gid2cell(pyr_gid).synlist[1].gmax = config.awake_AMPAd2 * 0.4306688*(np.tanh(-config.ach_ion/0.82790214) + 1.17895946) / config.pc.gid2cell(pyr_gid).k_PY_PY_AMPA #see run_67; this used only when allowing ACh concentration to continuously vary within a simulation
+            config.pc.gid2cell(pyr_gid).synlist[1].gmax = config.init_AMPA_pyrpyr * config.pyr2pyr_ampa_d2_str / config.pc.gid2cell(pyr_gid).k_PY_PY_AMPA
             
         ##### specify PYR->PYR NMDA_D1 connections   
         rad=config.pyr2pyr_nmda_d1_rad #number of outgoing connections from each PY cell
@@ -301,7 +296,7 @@ class Net:
             #(gmax was already set in cell_classes.py, which used the value specified in config.py)
             #note that this should also normalize the mini's, since their strength is set in the mod file by psp_weight, which is set in cell_classes.py
             #for fac_AMPA_D2, see Krishnan's currents.cpp line 545 and main.cpp lines 579-583, 639-776
-            config.pc.gid2cell(inh_gid).synlist[1].gmax = config.init_AMPA_D2 * config.pyr2inh_ampa_d2_str / config.pc.gid2cell(inh_gid).k_PY_IN_AMPA
+            config.pc.gid2cell(inh_gid).synlist[1].gmax = config.init_AMPA_cort * config.pyr2inh_ampa_d2_str / config.pc.gid2cell(inh_gid).k_PY_IN_AMPA
             
         
         ##### specify PYR->INH NMDA_D1 connections
@@ -349,7 +344,7 @@ class Net:
             #reduce gmax for this cell's synapse, so that the total synaptic strength is equal to that specified in the config file
             #(gmax was already set in cell_classes.py, which used the value specified in config.py)
             #for fac_AMPA_TC, see currents.cpp line 429, and main.cpp
-            config.pc.gid2cell(tc_gid).synlist[2].gmax = config.init_AMPA_TC * config.pyr2tc_ampa_str / config.pc.gid2cell(tc_gid).k_PY_TC
+            config.pc.gid2cell(tc_gid).synlist[2].gmax = config.init_AMPA_thal * config.pyr2tc_ampa_str / config.pc.gid2cell(tc_gid).k_PY_TC
         
         ##### specify PYR->RE AMPA connections
         rad=config.pyr2re_ampa_rad #number of outgoing connections from each PYR cell
@@ -373,7 +368,7 @@ class Net:
             #reduce gmax for this cell's synapse, so that the total synaptic strength is equal to that specified in the config file
             #(gmax was already set in cell_classes.py, which used the value specified in config.py)
             #for fac_AMPA_TC, see currents.cpp line 429, and main.cpp
-            config.pc.gid2cell(re_gid).synlist[1].gmax = config.init_AMPA_TC * config.pyr2re_ampa_str / config.pc.gid2cell(re_gid).k_PY_RE
+            config.pc.gid2cell(re_gid).synlist[1].gmax = config.init_AMPA_thal * config.pyr2re_ampa_str / config.pc.gid2cell(re_gid).k_PY_RE
             
         ##### specify INH->PYR GABA_A_D2 connections 
         rad=config.inh2pyr_gaba_a_d2_rad #number of outgoing connections from each INH cell
