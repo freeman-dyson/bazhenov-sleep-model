@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Thu Aug  1 06:40:56 2019
+'''
+Plot simulated LFP. Data file should either be lfp_nhost=*.txt or vcort_nhost=*.txt
+'''
 
-@author: finkt
-"""
 from matplotlib import pyplot as plt
 import numpy as np
 
