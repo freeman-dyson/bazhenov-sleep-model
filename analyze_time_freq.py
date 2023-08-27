@@ -1,5 +1,6 @@
 '''
-Generates spectrogram similar to that in Fig. 2 of 
+Generates spectrogram similar to that in Fig. 2 of Krishnan et al's 
+"Cellular and neurochemical basis of sleep stages in the thalamocortical network" (eLife, 2016)
 '''
 import numpy as np
 from matplotlib import pyplot as plt
