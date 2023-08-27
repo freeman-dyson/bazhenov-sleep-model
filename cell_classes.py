@@ -1,12 +1,9 @@
-# -*- coding: utf-8 -*-
 """
-NOTE: 6-19-19 The createSynapses methods will need to be updated as I validate synaptic mod files
+Define classes for four types of cells (cortical pyramidal, cortical inhibitory, thalamocortical, reticular)
 """
 
-from __future__ import division
 import config
-from matplotlib import pyplot
-from neuron import h#, gui
+from neuron import h
 import numpy as np
 h('load_file("stdgui.hoc")')
 
@@ -109,7 +106,7 @@ class PyrCell(Cell):
 
     def defineBiophysics(self):
         
-        if(config.doextra==1): #necessary to record LFP
+        if config.doextra: #necessary to record LFP
             for sec in self.all:
                 sec.insert('xtra')
             
@@ -152,7 +149,7 @@ class PyrCell(Cell):
         
         self.dend.insert('kL')
         h.krev_kL = -95 #for some reason, Bazhenov et. al. use -95mV as ek for potassium leak current, but -90mV for other potassium currents in PYR and INH cells (Krishnan currents.cpp line 1066)
-        self.dend.gkL_kL = config.init_gkl * config.gkl_pyr_baseline # S/cm2 (Krishnan CellSyn.h line 362 says 0.011 mS/cm2, but Krishnan currents.h line 1201 says 0.005 mS/cm2); for init_gkl (fac_gkl), see currents.cpp line 1066, and main.cpp
+        self.dend.gkL_kL = config.init_gkl_pyr # S/cm2 (Krishnan CellSyn.h line 362 says 0.011 mS/cm2, but Krishnan currents.h line 1201 says 0.005 mS/cm2); for init_gkl (fac_gkl), see currents.cpp line 1066, and main.cpp
         
         self.dend.insert('pas')
         self.dend.g_pas = 0.000011 #S/cm2; this is set in Krishnan CellSyn.h line 365. NOTE: Krishnan adds variability to this parameter, and I plan to add this variability when each PYR cell is instantiated in createCells. Krishnan's prescription: G_l = 0.011 + (((double) rand() / (RAND_MAX)) + 1) * 0.003;
@@ -246,7 +243,7 @@ Almost the same as PyrCell, except for the following points:
 
     def defineBiophysics(self):
         
-        if(config.doextra==1): #necessary to record LFP
+        if config.doextra: #necessary to record LFP
             for sec in self.all:
                 sec.insert('xtra')
                 
@@ -283,7 +280,7 @@ Almost the same as PyrCell, except for the following points:
         
         self.dend.insert('kL')
         h.krev_kL = -95 #for some reason, Bazhenov et. al. use -95mV as ek for potassium leak current, but -90mV for other potassium currents in PYR and INH cells (Krishnan currents.cpp line 1066)
-        self.dend.gkL_kL = config.init_gkl * config.gkl_inh_baseline #S/cm2 (Krishnan CellSyn.h line 525); for init_gkl (fac_gkl), see currents.cpp line 1066, and main.cpp
+        self.dend.gkL_kL = config.init_gkl_inh #S/cm2 (Krishnan CellSyn.h line 525); for init_gkl (fac_gkl), see currents.cpp line 1066, and main.cpp
         
         self.dend.insert('pas')
         self.dend.g_pas = 0.000009 #S/cm2; see Krishnan CellSyn.h line 526; need to add randomness to this parameter according to: G_l = 0.009 + (((double) rand() / (RAND_MAX)) + 1) * 0.003;
@@ -356,7 +353,7 @@ class RECell(Cell):
         
         self.soma.insert('kL')
         h.krev_kL = -95  #Krishnan currents.cpp line 103
-        self.soma.gkL_kL = config.init_gkl_RE* config.gkl_RE_baseline # S/cm2; Krishnan CellSyn.h line 177; for init_gkl_RE (fac_gkl_RE), see Krishnan's currents.cpp line 1031, and main.cpp
+        self.soma.gkL_kL = config.init_gkl_RE # S/cm2; Krishnan CellSyn.h line 177; for init_gkl_RE (fac_gkl_RE), see Krishnan's currents.cpp line 1031, and main.cpp
         
         self.soma.insert('naf_re')		# Hodgin-Huxley INa and IK 
         self.soma.ena = 50 #not listed in Bazhenov 2002, but it is 50 mV in C++ code
@@ -418,7 +415,7 @@ class TCCell(Cell):
         
         self.soma.insert('kL')
         h.krev_kL = -95 # Krishnan currents.cpp line 103
-        self.soma.gkL_kL = config.init_gkl_TC * config.gkl_TC_baseline # S/cm2; Krishnan CellSyn.h line 241; for init_gkl_TC (fac_gkl_TC), see Krishnan's currents.cpp line 1050, and main.cpp
+        self.soma.gkL_kL = config.init_gkl_TC # S/cm2; Krishnan CellSyn.h line 241; for init_gkl_TC (fac_gkl_TC), see Krishnan's currents.cpp line 1050, and main.cpp
         
         self.soma.insert('naf_tc')		# Hodgin-Huxley INa and IK 
         self.soma.ena = 50 #not listed in Bazhenov 2002, but it is 50 mV in C++ code
@@ -452,7 +449,7 @@ class TCCell(Cell):
         h.nexp_iar = 1		# nb of binding sites on Ih channel(Krishnan currents.cpp line 168)
         h.ginc_iar = 2.0		# augm of conductance of bound Ih (Krishnan CellSyn.h line 229)
         h.taum_iar = 20.0          # Krishnan currents.cpp line 168
-        self.soma.fac_gh_TC_iar = config.init_gh_TC #mV; this should be -8mV, -3mV, -2mV, and 0mV for awake, N2, N3, and REM sleep, respectively (Krishnan eLife 2016); see Krishnan's currents.cpp lines 173-175, and main.cpp
+        self.soma.fac_gh_TC_iar = config.init_gh_TC #mV; this should be -8mV, -4mV, -2mV, and 0mV for awake, N2, N3, and REM sleep, respectively (Krishnan eLife 2016); see Krishnan's currents.cpp lines 173-175, and main.cpp
         
         h.ion_style("ca_ion",3,1,0,0,0,sec=self.soma) #this ensures that cai is treated as a dynamical variable, while eca is a fixed parameter (although iT_TC.mod implements its own calcium reversal potential)
         
