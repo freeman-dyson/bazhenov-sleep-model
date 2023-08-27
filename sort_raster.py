@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Jul 22 15:23:05 2019
-
-@author: finkt
-"""
+'''
+If simulation is run in parallel with multiple cores, the raster data file will be temporally out of order.
+This code sorts the raster file temporally.
+'''
 import numpy as np
 
 raster=np.loadtxt("raster_nhost=1.txt")
