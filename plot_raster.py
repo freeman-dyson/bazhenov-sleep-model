@@ -1,11 +1,6 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Jul 23 13:59:05 2019
-
-Creates a raster plot from the raster data. 
-
-@author: logan
-"""
+'''
+Generate raster plot of network activity
+'''
 
 from neuron import h 
 from matplotlib import pyplot as plt
