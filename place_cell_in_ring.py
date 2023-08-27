@@ -1,5 +1,7 @@
 """
 This is just a file for figuring out how to place cells in a ring, with a specified space (in micrometers^2) per cell.
+This is not used directly in the simulation code, but is the basis for the setCellLocations method in network_class.py.
+This file can be used to visualize the spatial arrangement of cells.
 """
 from __future__ import division
 from matplotlib import pyplot
