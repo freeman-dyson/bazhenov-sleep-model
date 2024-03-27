@@ -10,4 +10,3 @@ lfp=np.loadtxt('lfp_nhost=1.txt')
 time=dt*np.arange(0,len(lfp))
 
 plt.plot(time,lfp)
-
