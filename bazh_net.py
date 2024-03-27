@@ -7,7 +7,7 @@ import config
 from datetime import datetime
 from neuron import h
 import numpy as np
-h('load_file("stdgui.hoc")') #for some reason, need this instead of import gui to get the simulation to be reproducible and not give an LFP flatline
+h('load_file("stdgui.hoc")') # need this instead of import gui to get the simulation to be reproducible and not give an LFP flatline
 from network_class import Net
 
 h('CVode[0].use_fast_imem(1)') #see use_fast_imem() at https://www.neuron.yale.edu/neuron/static/new_doc/simctrl/cvode.html  
@@ -35,9 +35,9 @@ def onerun(randSeed,Npyr,Ninh,Nre,Ntc):
         recording_callback = (config.callback, cort_secs)
         h.cvode.extra_scatter_gather(0,recording_callback)  #this tells NEURON to call 'callback' on every time step, in order to compute LFP
     
-    '''if do_sleepstates==True, specify how parameters should change to induce different sleep states (see Krishnan's main.cpp)'''
+    '''if do_sleepstates==True, specify how parameters should change to induce different sleep states (see lines 640-777 of C++ main.cpp)'''
     if config.do_sleepstates:
-        #See 2019 Neuron Course booklet, p. 161; also see https://www.neuron.yale.edu/neuron/static/py_doc/programming/math/vector.html?highlight=vector#Vector.play
+        # see https://www.neuron.yale.edu/neuron/static/py_doc/programming/math/vector.html?highlight=vector#Vector.play
         t=h.Vector([config.awake_to_s2_start,config.awake_to_s2_end,config.s2_to_s3_start,config.s2_to_s3_end,config.s3_to_rem_start,config.s3_to_rem_end,config.rem_to_s2_start,config.rem_to_s2_end,config.rem_to_s2_end+h.dt]) #last entry (with "+h.dt") ensures that last parameter values remain constant to end of simulation ("If a constant outside the range is desired, make sure the last two points have the same y value and have different t values")
                
         #the next three entries are for changing GABA_A and GABA_B strengths in thalamus
@@ -145,19 +145,15 @@ def onerun(randSeed,Npyr,Ninh,Nre,Ntc):
     
     '''set up custom initialization to set RE voltage values'''
     def set_RE_voltages():
-        #loop through all RE cells and set their initial voltages to -61 mV
+        #loop through all RE cells and set their initial voltages to -65 mV
         for re_gid in net.re_gidList:
-            config.pc.gid2cell(re_gid).soma.v=-65 #see Krishnan's currents.cpp, line 1024
+            config.pc.gid2cell(re_gid).soma.v=-65 
         if(h.cvode.active()):
             h.cvode.re_init()
         else:
             h.fcurrent()
-        h.frecord_init() #probably not necessary, but Robert says it can't hurt
-    
-    # set voltage recording for 'plot_cell' in net (this needs to be parallelized)
-    #plot_cell=650
-    #net.cells[plot_cell].setRecording() #note that the index given to cells is NOT the gid if nhosts>1
-    
+        h.frecord_init() 
+       
     # run sim and gather spikes
     config.pc.set_maxstep(10) #see https://www.neuron.yale.edu/neuron/static/new_doc/modelspec/programmatic/network/parcon.html#ParallelContext.set_maxstep, as well as section 2.4 of the Lytton/Salvador paper
     h.dt = 0.025
@@ -171,13 +167,13 @@ def onerun(randSeed,Npyr,Ninh,Nre,Ntc):
         startTime = datetime.now() # store sim start time
         
         raster_file = open("raster_nhost=%g.txt"%(config.nhost), 'w') # prepare file to print raster data to file
-        lfp_file = open("lfp_nhost=%g.txt"%(config.nhost),'w') #prepare to print lfp data to file
-        vcort_file = open("vcort_nhost=%g.txt"%(config.nhost), 'w')
+        lfp_file = open("lfp_nhost=%g.txt"%(config.nhost),'w') #prepare to print biophysical lfp data to file
+        vcort_file = open("vcort_nhost=%g.txt"%(config.nhost), 'w') #prepare to print summed intracellular voltage trace data to file
     
 
     #actually run the simulation on all nodes
     t_curr = 0
-    while (t_curr < config.duration-h.dt): # comment from hoc code: include the '-dt' to account for rounding error; otherwise, may get error in writeVoltages
+    while (t_curr < config.duration-h.dt): # include the '-dt' to account for rounding error; otherwise, may get error in writeVoltages
         #step forward in periods of 'config.t_seg', and dump data to file after each step forward. Then resize vectors, so program does not run out of memory
         if(t_curr + config.t_seg < config.duration):
             config.pc.psolve(t_curr+config.t_seg)  
@@ -191,7 +187,6 @@ def onerun(randSeed,Npyr,Ninh,Nre,Ntc):
         if(config.idhost==0):
             for i in range(len(net.tVecAll)): #print raster data to file
                 raster_file.write("%.3f  %g\n" % (net.tVecAll[i], net.idVecAll[i])) # use the bash command 'sort -k 1n,1n -k 2n,2n raster_nhost=4 > raster_nhost=4_sorted' to sort the raster plots when nhost>1
-            #end for i in range(len(net.tVecAll))
             net.tVecAll = [] #reset the raster vectors that aggregate the results from all nodes, so they do not grow too large as the simulation progresses
             net.idVecAll = []
             
@@ -201,7 +196,6 @@ def onerun(randSeed,Npyr,Ninh,Nre,Ntc):
                 for i in range(len(net.lfp_sum)): #print LFP data to file
                     lfp_file.write("%.3f \n" % net.lfp_sum[i])
                     
-        #end if(config.idhost==0)
         net.tVec.resize(0) #reset the raster vectors on each individual node, so they do not grow too large as the simulation progresses
         net.idVec.resize(0)
         if config.doextra:
@@ -209,9 +203,7 @@ def onerun(randSeed,Npyr,Ninh,Nre,Ntc):
             config.lfp_rec=[] #reset list to being empty
             
         t_curr = t_curr + config.t_seg
-    #end while (t_curr < config.duration-h.dt)
     
-    #config.pc.prcellstate(434, '%d_%g'%(config.nhost,h.t))
     if config.idhost==0: 
         raster_file.close() #close raster file
         lfp_file.close()
@@ -220,10 +212,11 @@ def onerun(randSeed,Npyr,Ninh,Nre,Ntc):
         runTime = (datetime.now() - startTime).total_seconds()  # calculate run time
         print("Run time for %d sec sim = %.2f sec"%(int(config.duration/1000.0), runTime) )
         
-    #net.gatherSpikes()  # gather spikes from all nodes onto master node
+    
     
     # plot net raster, save net data and plot cell 0 traces 
-    '''if config.idhost==0: #if statement because we don't want every host to plot and save data (that would be redundant)
+    '''net.gatherSpikes()  # gather spikes from all nodes onto master node
+    if config.idhost==0: #if statement because we don't want every host to plot and save data (that would be redundant)
         #to plot raster data, we need to load the file, then define tVecAll and idVecAll lists so that they exist when the plotRaster method is called
         rasterdat=np.loadtxt("raster_nhost=%g.txt"%(config.nhost))
         if(len(rasterdat)>0):
@@ -239,9 +232,8 @@ def onerun(randSeed,Npyr,Ninh,Nre,Ntc):
     del net
     if config.doextra:
         h.cvode.extra_scatter_gather_remove(recording_callback) #removes 'callback', so that we don't have more and more callbacks on progressive iterations
-#end def onerun
 
-onerun(1,config.Npyr,config.Ninh,config.Nre,config.Ntc)
+onerun(config.randSeed,config.Npyr,config.Ninh,config.Nre,config.Ntc)
 
 config.pc.barrier()
 h.quit()
