@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-This is a Python translation of morlet_wav.m, which I wrote many years ago.
-
-this function performs time-frequency analysis on a signal using the
+This function performs time-frequency analysis on a signal using the
 Morlet wavelet. I implemented this using the textbook 'The Illustrated
 Wavelet Transform Handbook' (Paul Addison), pp. 33ff., and the paper
 'Comparison of the Hilbert transform and wavelet methods...' (Le Van
