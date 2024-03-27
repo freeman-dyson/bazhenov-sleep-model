@@ -6,7 +6,7 @@ import config
 import pickle
 from neuron import h
 import numpy as np
-h('load_file("stdgui.hoc")') #for some reason, need this instead of import gui to get the simulation to be reproducible and not give an LFP flatline
+h('load_file("stdgui.hoc")') #need this instead of import gui to get the simulation to be reproducible and not give an LFP flatline
 from cell_classes import Cell, PyrCell, InhCell, RECell, TCCell   
 
 class Net:
@@ -24,8 +24,6 @@ class Net:
         self.nclist = []                # List of NetCon in the net
         self.tVec = h.Vector()         # spike time of all cells on this processor
         self.idVec = h.Vector()        # cell ids of spike times
-        #self.v_rec = []                #to record summed voltage values from all the cortical cells on particular host
-        #self.lfp_rec = []               #to record LFP values from all the cortical cells on particular host
         self.createNet()  # Actually build the net
         
     def __del__(self):
@@ -61,35 +59,34 @@ class Net:
     def createCells(self):
         """Create and layout cells (in this host) in the network."""
         self.cells = []
-        #random.seed(config.randSeed) #use Python's random number generator for randomizing g_pas values for PYR and INH cells (use Python instead of Random123 to make sure these streams don't somehow get crossed)
         
         for gid in self.gidList: #### Loop over cells in this node/host
             if gid<self.Npyr:
                 cell = PyrCell(gid) # create pyramidal cell if gid is less than Npyr
                 r = h.Random()
                 r.Random123(gid,2,0) #set stream of random numbers; first argument is gid, make second argument 2 because 0 and 1 are already taken by AMPA_D2 and GABA_D2 synapses (see cell_classes.py)
-                cell.dend.g_pas = 0.000011 + (r.uniform(0,1)+1) * 0.000003 #add cell-to-cell variability in this parameter, as prescribed in Krishnan CellSyn.h line 365
+                cell.dend.g_pas = 0.000011 + (r.uniform(0,1)+1) * 0.000003 #add cell-to-cell variability in this parameter, as prescribed in CellSyn.h line 365
             elif(self.Npyr <= gid < self.Npyr+self.Ninh):
                 cell = InhCell(gid)  # create pyramidal cell if gid is Npyr or greater
                 r = h.Random()
                 r.Random123(gid,1,0) #set stream of random numbers; first argument is gid, make second argument 1 because 0 is already taken by AMPA_D2 synapse (see cell_classes.py)
-                cell.dend.g_pas = 0.000009 + (r.uniform(0,1)+1) * 0.000003 #add cell-to-cell variability in this parameter, as prescribed in Krishnan CellSyn.h line 526
+                cell.dend.g_pas = 0.000009 + (r.uniform(0,1)+1) * 0.000003 #add cell-to-cell variability in this parameter, as prescribed in CellSyn.h line 526
             elif(self.Npyr+self.Ninh <= gid < self.Npyr+self.Ninh+self.Nre):
                 cell = RECell(gid)
             else:
                 cell = TCCell(gid)
                 
             self.cells.append(cell)  # add cell object to net cell list
-            cell.associateGid() # associated gid to each cell; if this line generates the error "gid=0 already exists on this process as an output port," then you just need to restart the kernel in Spyder
+            cell.associateGid() # associate gid to each cell; if this line generates the error "gid=0 already exists on this process as an output port," then you just need to restart the kernel if using an interactive Python environment
             config.pc.spike_record(cell.gid, self.tVec, self.idVec) # Record spikes of this cell
             
             print('Created cell %d on host %d out of %d'%(gid, config.idhost, config.nhost) )
             print('config.pc.gid2cell(%d): %s'%(gid,config.pc.gid2cell(gid)))
             
     def connectCells(self):
-        """Connect cells. Assume that a "radius of 8" (as specified in Krishnan 2016) implies
-        fan-out. Note that this assumes that there Npyr=500, Ninh=100, Nre=100, and Ntc=100.
-        It will not work correctly for other values."""
+        """Connect cells. Note that a "radius of 8" (as specified in Krishnan 2016) implies
+        fan-out. Note that this method assumes that there Npyr=500, Ninh=100, Nre=100, and Ntc=100.
+        It may not work correctly for other values."""
         
         ##### specify RE->TC GABA_A connections (NOTE: It is assumed Nre=Ntc) 
         rad=config.re2tc_gaba_a_rad #number of outgoing connections from each RE cell
@@ -109,9 +106,7 @@ class Net:
                 self.nclist.append((self.Npyr+self.Ninh+i_re,tc_gid,nc))
                 config.pc.gid2cell(tc_gid).nclist.append((self.Npyr+self.Ninh+i_re,nc))
                 config.pc.gid2cell(tc_gid).k_RE_TC_GABA_A += 1 #update in-degree for this cell
-            #reduce gmax for this cell's synapse, so that the total synaptic strength is equal to that specified in the config file
-            #(gmax was already set in cell_classes.py, which used the value specified in config.py)
-            #for fac_GABA_TC, see currents.cpp lines 341 & 369, and main.cpp
+            #reduce gmax for this cell's synapse, so that the *total* synaptic strength is equal to that specified in the config file
             config.pc.gid2cell(tc_gid).synlist[0].gmax = config.init_GABA_thal * config.re2tc_gaba_a_str / config.pc.gid2cell(tc_gid).k_RE_TC_GABA_A
     
         ##### specify RE->TC GABA_B connections (NOTE: It is assumed Nre=Ntc) 
@@ -131,7 +126,6 @@ class Net:
                 config.pc.gid2cell(tc_gid).nclist.append((self.Npyr+self.Ninh+i_re,nc))
                 config.pc.gid2cell(tc_gid).k_RE_TC_GABA_B += 1 #update in-degree for this cell
             #see note above for GABA_synapse
-            #for fac_GABA_TC, see currents.cpp lines 341 & 369, and main.cpp
             config.pc.gid2cell(tc_gid).synlist[1].gmax = config.init_GABA_thal * config.re2tc_gaba_b_str / config.pc.gid2cell(tc_gid).k_RE_TC_GABA_B
             
         ##### specify RE->RE GABA_A connections
@@ -152,8 +146,6 @@ class Net:
                     config.pc.gid2cell(re_gid).nclist.append((self.Npyr+self.Ninh+i_pre_re,nc))
                     config.pc.gid2cell(re_gid).k_RE_RE += 1 #update in-degree for this cell
             #reduce gmax for this cell's synapse, so that the total synaptic strength is equal to that specified in the config file
-            #(gmax was already set in cell_classes.py, which used the value specified in config.py)
-            #for fac_GABA_TC, see currents.cpp lines 341 & 369, and main.cpp
             config.pc.gid2cell(re_gid).synlist[2].gmax = config.init_GABA_thal * config.re2re_gaba_a_str / config.pc.gid2cell(re_gid).k_RE_RE
               
         ##### specify TC->RE AMPA connections (NOTE: It is assumed Nre=Ntc)  
@@ -173,8 +165,6 @@ class Net:
                 config.pc.gid2cell(re_gid).nclist.append((self.Npyr+self.Ninh+self.Nre+i_tc, nc))
                 config.pc.gid2cell(re_gid).k_TC_RE += 1
             #reduce gmax for this cell's synapse, so that the total synaptic strength is equal to that specified in the config file
-            #(gmax was already set in cell_classes.py, which used the value specified in config.py)
-            #for fac_AMPA_TC, see Krishnan's currents.cpp line 429, and main.cpp 
             config.pc.gid2cell(re_gid).synlist[0].gmax = config.init_AMPA_thal * config.tc2re_ampa_str / config.pc.gid2cell(re_gid).k_TC_RE
         
         ##### specify TC->PYR AMPA connections
@@ -197,10 +187,6 @@ class Net:
                 config.pc.gid2cell(pyr_gid).nclist.append((self.Npyr+self.Ninh+self.Nre+i_tc,nc))
                 config.pc.gid2cell(pyr_gid).k_TC_PY += 1
             #reduce gmax for this cell's synapse, so that the total synaptic strength is equal to that specified in the config file
-            #(gmax was already set in cell_classes.py, which used the value specified in config.py)
-            #for fac_AMPA_TC, see Krishnan's currents.cpp line 429, and main.cpp; note that network.cfg lists this as a D2 synapse with mini_f=0, which
-            #doesn't make sense; but if it was somehow coded as a D2 synapse, then we should instead apply fac_AMPA_D2;
-            #so it is unclear whether we should apply fac_AMPA_TC or fac_AMPA_D2 here (I'm guessing D2)
             config.pc.gid2cell(pyr_gid).synlist[0].gmax = config.init_AMPA_cort * config.tc2pyr_ampa_str / config.pc.gid2cell(pyr_gid).k_TC_PY
         
         ##### specify TC->INH AMPA connections (NOTE: this assumes that Ntc=Ninh)
@@ -222,10 +208,6 @@ class Net:
                 config.pc.gid2cell(inh_gid).nclist.append((self.Npyr+self.Ninh+self.Nre+i_tc, nc))
                 config.pc.gid2cell(inh_gid).k_TC_IN += 1
             #reduce gmax for this cell's synapse, so that the total synaptic strength is equal to that specified in the config file
-            #(gmax was already set in cell_classes.py, which used the value specified in config.py)
-            #for fac_AMPA_TC, see Krishnan's currents.cpp line 429, and main.cpp; note that network.cfg lists this as a D2 synapse with mini_f=0, which
-            #doesn't make sense; but if it was somehow coded as a D2 synapse, then we should instead apply fac_AMPA_D2
-            #so it is unclear whether we should apply fac_AMPA_TC or fac_AMPA_D2 here (I'm guessing D2)
             config.pc.gid2cell(inh_gid).synlist[0].gmax = config.init_AMPA_cort * config.tc2inh_ampa_str / config.pc.gid2cell(inh_gid).k_TC_IN
 
         ##### specify PYR->PYR AMPA_D2 connections
@@ -246,10 +228,6 @@ class Net:
                     config.pc.gid2cell(pyr_gid).nclist.append((i_pre_pyr,nc))
                     config.pc.gid2cell(pyr_gid).k_PY_PY_AMPA += 1
             #reduce gmax for this cell's synapse, so that the total synaptic strength is equal to that specified in the config file
-            #(gmax was already set in cell_classes.py, which used the value specified in config.py)
-            #note that this should also normalize the mini's, since their strength is set in the mod file by psp_weight, which is set in cell_classes.py
-            #for fac_AMPA_D2, see Krishnan's currents.cpp line 545 and main.cpp lines 579-583, 639-776
-            #config.pc.gid2cell(pyr_gid).synlist[1].gmax = config.awake_AMPAd2 * 0.4306688*(np.tanh(-config.ach_ion/0.82790214) + 1.17895946) / config.pc.gid2cell(pyr_gid).k_PY_PY_AMPA #see run_67; this used only when allowing ACh concentration to continuously vary within a simulation
             config.pc.gid2cell(pyr_gid).synlist[1].gmax = config.init_AMPA_pyrpyr * config.pyr2pyr_ampa_d2_str / config.pc.gid2cell(pyr_gid).k_PY_PY_AMPA
             
         ##### specify PYR->PYR NMDA_D1 connections   
@@ -270,7 +248,6 @@ class Net:
                     config.pc.gid2cell(pyr_gid).nclist.append((i_pre_pyr,nc))
                     config.pc.gid2cell(pyr_gid).k_PY_PY_NMDA += 1
             #reduce gmax for this cell's synapse, so that the total synaptic strength is equal to that specified in the config file
-            #(gmax was already set in cell_classes.py, which used the value specified in config.py)
             config.pc.gid2cell(pyr_gid).synlist[2].gmax = config.pc.gid2cell(pyr_gid).synlist[2].gmax / config.pc.gid2cell(pyr_gid).k_PY_PY_NMDA
         
         ##### specify PYR->INH AMPA_D2 connections 
@@ -293,9 +270,7 @@ class Net:
                 config.pc.gid2cell(inh_gid).nclist.append((i_pyr,nc))
                 config.pc.gid2cell(inh_gid).k_PY_IN_AMPA += 1
             #reduce gmax for this cell's synapse, so that the total synaptic strength is equal to that specified in the config file
-            #(gmax was already set in cell_classes.py, which used the value specified in config.py)
-            #note that this should also normalize the mini's, since their strength is set in the mod file by psp_weight, which is set in cell_classes.py
-            #for fac_AMPA_D2, see Krishnan's currents.cpp line 545 and main.cpp lines 579-583, 639-776
+            #note that this will also normalize the mini's, since their strength is set in the mod file by psp_weight, which is set in cell_classes.py
             config.pc.gid2cell(inh_gid).synlist[1].gmax = config.init_AMPA_cort * config.pyr2inh_ampa_d2_str / config.pc.gid2cell(inh_gid).k_PY_IN_AMPA
             
         
@@ -319,7 +294,6 @@ class Net:
                 config.pc.gid2cell(inh_gid).nclist.append((i_pyr,nc))
                 config.pc.gid2cell(inh_gid).k_PY_IN_NMDA += 1
             #reduce gmax for this cell's synapse, so that the total synaptic strength is equal to that specified in the config file
-            #(gmax was already set in cell_classes.py, which used the value specified in config.py)
             config.pc.gid2cell(inh_gid).synlist[2].gmax = config.pc.gid2cell(inh_gid).synlist[2].gmax / config.pc.gid2cell(inh_gid).k_PY_IN_NMDA
         
         ##### specify PYR->TC AMPA connections
@@ -342,8 +316,6 @@ class Net:
                 config.pc.gid2cell(tc_gid).nclist.append((i_pyr,nc))
                 config.pc.gid2cell(tc_gid).k_PY_TC += 1
             #reduce gmax for this cell's synapse, so that the total synaptic strength is equal to that specified in the config file
-            #(gmax was already set in cell_classes.py, which used the value specified in config.py)
-            #for fac_AMPA_TC, see currents.cpp line 429, and main.cpp
             config.pc.gid2cell(tc_gid).synlist[2].gmax = config.init_AMPA_thal * config.pyr2tc_ampa_str / config.pc.gid2cell(tc_gid).k_PY_TC
         
         ##### specify PYR->RE AMPA connections
@@ -366,8 +338,6 @@ class Net:
                 config.pc.gid2cell(re_gid).nclist.append((i_pyr,nc))
                 config.pc.gid2cell(re_gid).k_PY_RE += 1
             #reduce gmax for this cell's synapse, so that the total synaptic strength is equal to that specified in the config file
-            #(gmax was already set in cell_classes.py, which used the value specified in config.py)
-            #for fac_AMPA_TC, see currents.cpp line 429, and main.cpp
             config.pc.gid2cell(re_gid).synlist[1].gmax = config.init_AMPA_thal * config.pyr2re_ampa_str / config.pc.gid2cell(re_gid).k_PY_RE
             
         ##### specify INH->PYR GABA_A_D2 connections 
@@ -390,9 +360,6 @@ class Net:
                 config.pc.gid2cell(pyr_gid).nclist.append((self.Npyr+i_inh,nc))
                 config.pc.gid2cell(pyr_gid).k_IN_PY += 1
             #reduce gmax for this cell's synapse, so that the total synaptic strength is equal to that specified in the config file
-            #(gmax was already set in cell_classes.py, which used the value specified in config.py)
-            #note that this should also normalize the mini's, since their strength is set in the mod file by psp_weight, which is set in cell_classes.py
-            #for fac_GABA_D2, see Krishnan's currents.cpp line 755, and main.cpp
             config.pc.gid2cell(pyr_gid).synlist[3].gmax = config.init_GABA_D2 * config.inh2pyr_gaba_a_d2_str / config.pc.gid2cell(pyr_gid).k_IN_PY
             
             
@@ -404,8 +371,10 @@ class Net:
         #config.pc.gid2cell(0).createIClamp(amp=50)
         
     def setCellLocations(self):
-        '''set cell locations for calculating distance from recording electrode. Also set pointers necessary for
-        xtra and extracellular mechanisms to work. (This code is adapted from HFO recode version 12)'''
+        '''set cortical cell locations for calculating distance from recording 
+        electrode. Also set pointers necessary for xtra and extracellular 
+        mechanisms to work. Note we are only interested in placing PYR and INH
+        cells because RE and TC cells do not contribute to LFP.'''
         h.define_shape() #this assigns default position and orientation of all cell. These default positions must be changed below...
         
         dist_cell=np.sqrt(config.area_cell) #closest linear distance between cells, if laid out on a square grid
@@ -416,7 +385,7 @@ class Net:
         Ntot=Npyr+Ninh
         
         pyr2inh_ratio=Npyr/Ninh
-        #for ease of coding, I am going to require that Npyr be a multiple of Ninh
+        #for ease of coding, we are going to require that Npyr be a multiple of Ninh
         assert Npyr%Ninh==0, "Error: Number of pyramidal cells must be a multiple of the number of inhibitory cells."
         
         #fist column is x-coordinates, second column y-coordinates, third column z-coordinates
@@ -530,7 +499,7 @@ class Net:
         data = [None]*config.nhost #EACH NODE has this list, the i^th element of which will be sent to node i
         data[0] = {'lfp': config.lfp_rec, 'v_rec': config.v_rec} #by making only the zeroth element something other than 'None,' this means each node will be sending data only to node 0
         config.pc.barrier()
-        gather=config.pc.py_alltoall(data) #according to Lytton paper, 'gather' is a list
+        gather=config.pc.py_alltoall(data) #according to Lytton et. al. 2016, 'gather' is a list
         config.pc.barrier() 
         if config.idhost==0:
             print(len(gather[0]['v_rec']))
@@ -544,7 +513,7 @@ class Net:
     def plotRaster(self):
 
         print('Plotting raster ...')
-        pyr_indices=[i for (i, val) in enumerate(self.idVecAll) if val<self.Npyr] #basically the equivalent of [i,val]=find(idVeCall<Npyr) in Matlab to get the indices of pyramidal cell spikes
+        pyr_indices=[i for (i, val) in enumerate(self.idVecAll) if val<self.Npyr] # get the indices of pyramidal cell spikes
         inh_indices=[i for (i, val) in enumerate(self.idVecAll) if (self.Npyr<=val<(self.Npyr+self.Ninh))] #find indices (within self.idVecAll) of inhibitory cell spikes
         re_indices=[i for (i, val) in enumerate(self.idVecAll) if ((self.Npyr+self.Ninh)<=val<(self.Npyr+self.Ninh+self.Nre))]
         tc_indices=[i for (i, val) in enumerate(self.idVecAll) if ((self.Npyr+self.Ninh+self.Nre)<=val)]
