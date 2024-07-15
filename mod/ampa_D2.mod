@@ -2,7 +2,7 @@ TITLE ampa_D2.mod
 
 COMMENT
 This model adds random, spontaneous EPSP's to ampa_D1.mod (which already includes depression), 
-as in the model used in Krishnan 2016 (eLife) (and similar to Bazhenov 2002). See line 490ff in Krishnan's currents.cpp.
+as in the model used in Krishnan et. al. 2016 (eLife) (and similar to Bazhenov 2002). See line 490 in C++ currents.cpp.
 First-order synaptic dynamics originally proposed in "An efficient method for computing synaptic
 conductances based on a kinetic model of receptor binding" (Destexhe et. al., 1994).
 This is an updated version of a mod file originally by Alain Destexhe, ModelDB #18198.
@@ -27,19 +27,19 @@ UNITS{
 	(uS) = (micromho)
 }
 
-PARAMETER{ :see line 447 of currents.cpp (from Giri Krishnan) for parameter values
+PARAMETER{ :see line 447 of currents.cpp for parameter values
 	gmax   = 0.0001 (uS) :max conductance of *one* synapse (so in BREAKPOINT, g can be greater than this if there are multiple incoming connections)
 	psp_weight = 1.5 :unitless factor which scales gmax for the stochastic PSP's prescribed in Bazhenov 2002 and Krishnan 2016
 	Cdur   = 0.3  (ms) :transmitter duration (rising phase)
 	deadtime=1.0 (ms) : minimum time between release events; this code assumes Cdur+deadtime<100 ms, because PSP's must happen at least 100 ms after last spike, which is assumed not to be during a deadtime
 	Cmax   = 0.5	(mM)		: max transmitter concentration
-	Alpha  = 1.1  (/ms mM):forward (binding) rate (Krishnan currents.cpp line 493)
-	Beta   = 0.19 (/ms):backward (dissociation) rate (Krishnan currents.cpp line 493)
+	Alpha  = 1.1  (/ms mM):forward (binding) rate (see currents.cpp line 493)
+	Beta   = 0.19 (/ms):backward (dissociation) rate (see currents.cpp line 493)
 	Erev   = 0    (mV) :equilibrium potential
 	Tr     = 700 (ms) :time constant for short-term depression
 	afterspike_time= 100 (ms) :EPSP's can only occur a minimum of 'afterspike_time' after most recent presynaptic spike
-	mini_fre=20  (ms) :parameter for generating epsp's (this is the same variable name as in currents.cpp in Krishnan's code)
-	SS_denom=250 (ms) :another parameter for generating epsp's (this is in the denominator of 'SS' in Krishnan's currents.cpp)
+	mini_fre=20  (ms) :parameter for generating epsp's (this is the same variable name as in currents.cpp in C++ code)
+	SS_denom=250 (ms) :another parameter for generating epsp's (this is in the denominator of 'SS' in currents.cpp)
 	gid = 0 :need to remember to change this when the synapse is created in NEURON
 	syn_index = 0 :may change this when the synapse is created in NEURON; this is used by the random number generator to generate different streams for different synapses on the same cell; so if a cell has more than one synapse which uses Random123, this should be changed
 }
@@ -65,10 +65,10 @@ INITIAL {
 	synon = 0
 	Rtau = 1 / ((Alpha * Cmax) + Beta)
 	Rinf = Cmax*Alpha / (Cmax*Alpha + Beta)
-	:setrand(gid,syn_index) :this is now set from NEURON (see emails with Michael Hines, starting 7/24/19)
+	:setrand(gid,syn_index) :this is now set from NEURON (see createSynapses methods in cell_classes.py)
 }
 
-BREAKPOINT { : would be good to get this in terms of gmax
+BREAKPOINT { 
 	SOLVE release METHOD cnexp
 	g = gmax * (Ron + Roff) :max value is weight*gmax*synon*Rinf (for spikes; random PSP's carry psp_weight instead of weight)
 	i = g*(v - Erev)
@@ -80,27 +80,26 @@ DERIVATIVE release {
 }
 
 :weight is assumed to be a unitless factor which scales gmax for presynaptic spikes
-:short-term depression achieved using the factor 'E,' which is proportion 
-:of available presynaptic resources. 
+:short-term depression achieved using the factor 'E,' which is proportion of available presynaptic resources. 
 
 NET_RECEIVE(weight, r0, toff (ms), lastspike (ms), lastpsp (ms), nextpsp (ms), E, gid) {
 	INITIAL{
 		net_send(gen_nextpsp(-100*Rtau,mini_fre,SS_denom),1) :put a possible PSP event in the queue, using a 'lastspike' value of -100*Rtau (very long time ago); for some reason, placing this statement in the mod file's INITIAL block caused a segmentation fault
 		r0 = 0
 		toff = 0 (ms) :this value doesn't matter
-		lastspike = -100*Rtau :initialize to large neg val so that do not get depression on first spike
-		lastpsp = -100*Rtau :initialize to large neg val so an early spike will trigger neurotransmitter release
+		lastspike = -100*Rtau :initialize to large negative val so that do not get depression on first spike
+		lastpsp = -100*Rtau :initialize to large negative val so an early spike will trigger neurotransmitter release
 		nextpsp = 0.0 (ms) :time until the next PSP *might* be generated (as long as the last spike occurred more than 99.99 ms ago); this value doesn't matter bc. we initiate PSP event in INITIAL block
 		E  = 1 :synapse starts out at full strength
-		:printf("presyn gid = %d, postsyn gid = %d \n", gid, src_gid)
+		:printf("presyn gid = %d, postsyn gid = %d \n", gid, src_gid) :useful for debugging
 	}
 	
 	:flag is an implicit argument of NET_RECEIVE, normally 0
 	if (flag == 0){ :flag==0 implies a spike is received 
 		:a spike arrived; ignore it if we are already within either a spike or a psp on state, or deadtime
-		:printf("Entered flag=0: t=%8.2f ms \n", t)
+		:printf("Entered flag=0: t=%8.2f ms \n", t) :useful for debugging
 		if((t-lastspike)>(Cdur + deadtime) && (t-lastpsp)>(Cdur+deadtime)){
-			:for 'E,' see "Synaptic Currents" section of Bazhenov 2002 (and line ~500 of Krishnan's currents.cpp)
+			:for 'E,' see "Synaptic Currents" section of Bazhenov 2002 (and around roughly line 500 of C++ currents.cpp)
 			E = 1 - (1 - E*(1-0.07)) * exp(-(t-lastspike)/Tr) :note that we are assuming the last spike in this stream occurred at t0-Cdur
 			synon = synon + E*weight :weight is scaled by 'E' to implement synaptic depression
 			r0 = r0*exp(-Beta*(t-toff)) :r0 at start of onset state
@@ -115,7 +114,7 @@ NET_RECEIVE(weight, r0, toff (ms), lastspike (ms), lastpsp (ms), nextpsp (ms), E
 		if( (t-lastpsp)<=(Cdur+deadtime) ){
 			:printf("Flag=1, and (t-lastpsp)<=(Cdur+deadtime) \n")
 		}
-		if((t-lastspike)>(afterspike_time-0.00001) && (t-lastspike)>(nextpsp-0.00001)) { :"-0.00001" to avoid round-off issues; second clause bc. Krishnan requires that last spike or psp occur at least 'nextpsp' before next psp (and by design, lastpsp occurred at least 'nextpsp' ago); third clause prevents two PSP events from overlapping
+		if((t-lastspike)>(afterspike_time-0.00001) && (t-lastspike)>(nextpsp-0.00001)) { :"-0.00001" to avoid round-off issues; second clause bc. Krishnan et. al. require that last spike or psp occur at least 'nextpsp' before next psp (and by design, lastpsp occurred at least 'nextpsp' ago); third clause prevents two PSP events from overlapping
 			synon = synon + psp_weight
 			r0 = r0*exp(-Beta*(t-toff)) 
 			Ron = Ron + r0
@@ -123,12 +122,12 @@ NET_RECEIVE(weight, r0, toff (ms), lastspike (ms), lastpsp (ms), nextpsp (ms), E
 			lastpsp = t
 			net_send(Cdur, 2) :turn off neurotransmitter
 			
-			nextpsp=0 :generate next epsp time (analogous to 'newrelease' in Krishnan code), and make sure it does not come before the end of Cdur+deadtime
+			nextpsp=0 :generate next epsp time (analogous to 'newrelease' in C++ code), and make sure it does not come before the end of Cdur+deadtime
 			while(nextpsp < (Cdur+deadtime) ){
 				nextpsp = gen_nextpsp(lastspike,mini_fre,SS_denom) 
 			}
 			:printf("Flag==1: New next psp: t=%8.2f, nextpsp=%8.2f, lastspike=%8.2f \n",t, nextpsp,lastspike)
-			net_send(max(afterspike_time-(t-lastspike),nextpsp),1) :Krishnan's code requires that PSP's occur at least 100 ms after most recent spike; this is earliest time that a PSP could be allowed to happen, so send an event to check at that time
+			net_send(max(afterspike_time-(t-lastspike),nextpsp),1) :C++ code requires that PSP's occur at least 100 ms after most recent spike; this is earliest time that a PSP could be allowed to happen, so send an event to check at that time
 		} else {
 			net_send( max(afterspike_time,nextpsp)-(t-lastspike) , 1) :at this point, we know for sure that lastpsp occurred more than 'nextpsp' ago (bc. when the last psp occurred, we scheduled the next psp to occur 'nextpsp' later), so the next psp must occur more than 100 ms after lastspike or 'nextpsp' ms after lastspike (whichever is greater)
 			:printf("Regenerated psp: t=%8.2f, nextpsp=%8.2f, lastspike=%8.2f \n",t,nextpsp,lastspike)
@@ -163,10 +162,11 @@ FUNCTION max(x(ms),y(ms)) {
 :this code uses Random123, which requires NEURON 7.3 or higher
 :uses nrnran123.c and nrnran123.h from http://www.neuron.yale.edu/hg/neuron/nrn/file/9d4ab20927bc/src/oc/
 VERBATIM
-#define VOIDCAST void** vp = (void**)(&(_p_ptr))
-extern void * nrnran123_newstream(int,int);
-extern void nrnran123_deletestream(void *);
-extern double nrnran123_dblpick(void *);
+#define VOIDCAST nrnran123_State** vp = (nrnran123_State**)(&(_p_ptr))
+//#define VOIDCAST void** vp = (void**)(&(_p_ptr)) these revisions made in order to successfully compile in NEURON 8.2 (see https://www.neuron.yale.edu/phpBB/viewtopic.php?p=20009#p20009)
+//extern void * nrnran123_newstream(int,int); 
+//extern void nrnran123_deletestream(void *);
+//extern double nrnran123_dblpick(void *);
 ENDVERBATIM
 
 PROCEDURE setrand(id1,id2) {
@@ -175,7 +175,8 @@ PROCEDURE setrand(id1,id2) {
 	if(*vp) {
 		nrnran123_deletestream(*vp);
 	} 
-	*vp = nrnran123_newstream((int) _lid1,(int) _lid2);
+	*vp = nrnran123_newstream((uint32_t) _lid1,(uint32_t) _lid2);
+	//*vp = nrnran123_newstream((int) _lid1,(int) _lid2); again, see https://www.neuron.yale.edu/phpBB/viewtopic.php?p=20009#p20009
 	ENDVERBATIM
 } 
 
@@ -193,5 +194,5 @@ FUNCTION gen_nextpsp(lastspike (ms),mini_fre (ms),SS_denom(ms)) { :adapted from 
 	if(S < 0.000001){ :just following Krishnan here
 		S = 0.000001
 	}
-	gen_nextpsp = -(log(S))/SS :see AMPA_D2 class in Krishnan's currents.cpp
+	gen_nextpsp = -(log(S))/SS :see AMPA_D2 class in currents.cpp
 }
