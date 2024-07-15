@@ -13,7 +13,11 @@ Oscillations and Transitions to Activated States," J. Neuro., 2002
 (doi: https://doi.org/10.1523/JNEUROSCI.22-19-08691.2002) The C++ code for that
 model may be found here: https://modeldb.science/28189?tab=1
 
-This code was developed in NEURON 8.2.2. Users should first install Python,
+This code was developed in NEURON 8.2.2. (Note that NEURON introduced some breaking changes
+related to mod files in version 8.2. In particular, the mod files ampa_D2.mod and 
+gaba_D2.mod will not work in versions earlier than 8.2. However, see the comments 
+within these mod files for how to revert back to compatibility 
+with earlier versions of NEURON.) Users should first install Python,
 then install the latest version of NEURON (https://www.neuron.yale.edu/neuron/download).
 To run this code in parallel, also install MPI.
 
